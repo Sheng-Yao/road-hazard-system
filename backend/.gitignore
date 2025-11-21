@@ -1,0 +1,23 @@
+# --- Node Packages ---
+node_modules/
+
+# --- Wrangler Build Output ---
+.wrangler/
+.worker/
+.dev/
+
+# --- Env Files & Secrets ---
+.env
+.env.*.local
+.env.production
+wrangler.toml  # optional if storing secrets via CLI
+
+# --- Logs ---
+*.log
+logs/
+
+# --- System / Editor Files ---
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

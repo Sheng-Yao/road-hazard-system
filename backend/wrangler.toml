@@ -1,0 +1,7 @@
+name = "road-hazard-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+SUPABASE_URL = "https://olsvfvqkjzljfppinfiv.supabase.co"
+SUPABASE_KEY = "sb_secret_Rv-7tfUU3e2HXvU1ZZPhGA_OaMuJCEH"

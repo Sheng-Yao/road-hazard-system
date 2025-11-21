@@ -1,0 +1,30 @@
+# --- Node Modules ---
+node_modules/
+
+# --- Build Output ---
+dist/
+dist-ssr/
+*.local
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# --- Env Files ---
+.env
+.env.local
+.env.*.local
+
+# --- Editor & System Files ---
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.sw?
+*.sln
+*.njsproj
+*.ntvs*
