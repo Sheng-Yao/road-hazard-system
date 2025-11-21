@@ -1,10 +1,28 @@
 import { useEffect, useState } from "react";
 
-export default function ListModal({ onClose }) {
+export default function ListModal({ onClose, onHighlight }) {
   const [hazards, setHazards] = useState([]);
   const [selectedHazard, setSelectedHazard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // if (!selectedHazard) return null; // prevents crash
+
+  const jobList = selectedHazard?.job_distribution
+    ? JSON.parse(selectedHazard.job_distribution)
+    : [];
+
+  const guideList = selectedHazard?.repair_guide
+    ? JSON.parse(selectedHazard.repair_guide)
+    : [];
+
+  const riskReasonList = selectedHazard?.risk_reason
+    ? JSON.parse(selectedHazard.risk_reason)
+    : [];
+
+  const materialReasonList = selectedHazard?.repair_material_reason
+    ? JSON.parse(selectedHazard.repair_material_reason)
+    : [];
 
   useEffect(() => {
     async function fetchHazards() {
@@ -124,9 +142,12 @@ export default function ListModal({ onClose }) {
                 <p>
                   <strong>Risk Level:</strong> {selectedHazard.risk_level}
                 </p>
-                <p>
-                  <strong>Reason:</strong> {selectedHazard.risk_reason}
-                </p>
+                <p className="font-semibold">Risk Reason:</p>
+                <ul className="list-disc ml-5 text-sm mt-2">
+                  {riskReasonList.map((reason, i) => (
+                    <li key={i}>{reason}</li>
+                  ))}
+                </ul>
 
                 <p>
                   <strong>Location:</strong>{" "}
@@ -141,10 +162,12 @@ export default function ListModal({ onClose }) {
                 <p>
                   <strong>Material:</strong> {selectedHazard.repair_material}
                 </p>
-                <p>
-                  <strong>Reason:</strong>{" "}
-                  {selectedHazard.repair_material_reason}
-                </p>
+                <p className="font-semibold">Material Reason:</p>
+                <ul className="list-disc ml-5 text-sm mt-2">
+                  {materialReasonList.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
                 <p>
                   <strong>Required Volume:</strong>{" "}
                   {selectedHazard.volume_material_required}
@@ -157,20 +180,27 @@ export default function ListModal({ onClose }) {
                 <p>
                   <strong>Manpower:</strong> {selectedHazard.manpower_required}
                 </p>
-                <p>
-                  <strong>Task Breakdown:</strong>{" "}
-                  {selectedHazard.job_distribution}
-                </p>
 
+                <p className="font-semibold">Task Breakdown:</p>
+                <ul className="list-disc ml-5 text-sm mt-2">
+                  {jobList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
                 <div className="mt-4 p-3 bg-gray-100 rounded">
-                  <strong>Repair Guide:</strong>
-                  <pre className="whitespace-pre-wrap text-sm mt-2">
-                    {selectedHazard.repair_guide}
-                  </pre>
+                  <p className="font-semibold">Repair Guide:</p>
+                  <ul className="list-decimal ml-5 text-sm mt-2">
+                    {guideList.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ul>
                 </div>
 
                 <button
-                  onClick={() => onHighlight(selectedHazard)}
+                  onClick={() => {
+                    onClose();
+                    onHighlight(selectedHazard);
+                  }}
                   className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
                 >
                   Highlight on Map

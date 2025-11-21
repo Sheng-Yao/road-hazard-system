@@ -31,6 +31,20 @@ export default {
         return json(data);
       }
 
+      // 🔹 NEW: GET HAZARDS FOR MAP PLOTTING
+      if (path.startsWith("/hazard-map")) {
+        const { data, error } = await supabase
+          .from("road_hazard_final_db")
+          .select(
+            "id, reported_at, image_url, latitude, longitude, hazard_type, risk_level, repair_material, volume_required, manpower_required"
+          )
+          .order("reported_at", { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+        return json(data);
+      }
+
       // 🔹 GET SINGLE HAZARD BY ID
       if (path.startsWith("/hazard/")) {
         const id = path.split("/").pop();

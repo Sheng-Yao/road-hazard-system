@@ -8,6 +8,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [showList, setShowList] = useState(false);
   const [focusHazard, setFocusHazard] = useState(null);
+  const [highlightHazard, setHighlightHazard] = useState(null);
 
   return (
     <div className="h-screen w-screen overflow-hidden relative">
@@ -57,13 +58,17 @@ export default function App() {
         </ul>
       </header>
       <main className="absolute inset-0 z-0">
-        <HazardMap />
+        <HazardMap highlightHazard={highlightHazard} />
       </main>
       {activeTab === "list" && showList && (
         <ListModal
           onClose={() => {
             setShowList(false);
             setActiveTab("map");
+          }}
+          onHighlight={(hazard) => {
+            setHighlightHazard(hazard);
+            setShowList(false); // close modal here
           }}
         />
       )}
