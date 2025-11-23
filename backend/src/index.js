@@ -23,7 +23,7 @@ export default {
           .select(
             "id, reported_at, image_url, latitude, longitude, hazard_type, state, risk_level"
           )
-          .order("reported_at", { ascending: false })
+          .order("risk_level", { ascending: false })
           .limit(50);
 
         if (error) throw error;
