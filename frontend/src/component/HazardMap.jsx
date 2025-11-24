@@ -5,8 +5,8 @@ import L from "leaflet";
 const alertIcon = new L.Icon({
   iconUrl: "/markers/alert.png",
   iconSize: [64, 64],
-  // iconAnchor: [32, 54],
-  // popupAnchor: [0, -54],
+  iconAnchor: [32, 64],
+  popupAnchor: [0, -64],
 });
 
 function MapHighlighter({ highlightHazard, markerRefs }) {
@@ -19,25 +19,33 @@ function MapHighlighter({ highlightHazard, markerRefs }) {
   useEffect(() => {
     if (!highlightHazard) return;
 
-    // Center map
-    map.setView([highlightHazard.latitude, highlightHazard.longitude], 16, {
-      animate: true,
-    });
+    const latlng = [highlightHazard.latitude, highlightHazard.longitude];
 
-    setTimeout(() => {
-      map.panBy([0, -200], { animate: true }); // ⬅ flipped sign
-    }, 500);
+    // Step 1: Move to location
+    map.setView(latlng, 16, { animate: true });
 
-    setTimeout(() => {
+    // Step 2: After move is done → pan + popup
+    const handleMoveEnd = () => {
+      // pan upward so popup is fully visible
+      map.panBy([0, -220], { animate: true });
+
+      // open popup
       const marker = markerRefs.current?.[highlightHazard.id];
       if (marker) marker.openPopup();
-    }, 800);
+
+      // ⭐ VERY IMPORTANT: remove listener after first run
+      map.off("moveend", handleMoveEnd);
+    };
+
+    map.on("moveend", handleMoveEnd);
+
+    return () => map.off("moveend", handleMoveEnd);
   }, [highlightHazard]);
 
   return null;
 }
 
-export default function HazardMap({ highlightHazard }) {
+export default function HazardMap({ highlightHazard, onHighlight }) {
   const defaultPosition = [2.945747, 101.87509]; // Singapore center (change if needed)
   const [hazards, setHazards] = useState([]);
   const markerRefs = useRef({});
@@ -80,38 +88,44 @@ export default function HazardMap({ highlightHazard }) {
           key={h.id}
           position={[h.latitude, h.longitude]}
           icon={alertIcon}
-          ref={(el) => (markerRefs.current[h.id] = el)}
+          ref={(marker) => {
+            if (marker && !markerRefs.current[h.id]) {
+              markerRefs.current[h.id] = marker;
+            }
+          }}
+          eventHandlers={{
+            click: () => onHighlight(h), // 🔥 highlight instantly on click
+          }}
         >
-          <Popup maxWidth={400} className="popup-custom">
+          <Popup
+            maxWidth={400}
+            className="popup-custom"
+            autoPan={false}
+            keepInView={true}
+          >
             <div className="space-y-0.5 text-sm leading-snug w-full">
               <h3 className="text-lg font-bold">{h.hazard_type}</h3>
               {/* Bold Labels + Normal Text */}
               <p>
                 <span className="font-semibold">Risk:</span> {h.risk_level}
-              </p>
-
-              <p>
+                <br />
                 <span className="font-semibold">Repair Material:</span>{" "}
                 {h.repair_material}
-              </p>
-
-              <p>
+                <br />
                 <span className="font-semibold">Volume:</span>{" "}
                 {h.volume_material_required}
-              </p>
-
-              <p>
+                <br />
                 <span className="font-semibold">Manpower:</span>{" "}
                 {h.manpower_required}
+                {/* Image */}
+                {h.image_url && (
+                  <img
+                    src={h.image_url}
+                    alt={h.hazard_type}
+                    className="mt-3 max-w-[300px] h-auto rounded shadow-lg"
+                  />
+                )}
               </p>
-              {/* Image */}
-              {h.image_url && (
-                <img
-                  src={h.image_url}
-                  alt={h.hazard_type}
-                  className="mt-3 max-w-[300px] h-auto rounded shadow-lg"
-                />
-              )}
             </div>
           </Popup>
         </Marker>

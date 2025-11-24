@@ -123,7 +123,10 @@ export default function App() {
         </ul>
       </header>
       <main className="absolute inset-0 z-0">
-        <HazardMap highlightHazard={highlightHazard} />
+        <HazardMap
+          highlightHazard={highlightHazard}
+          onHighlight={setHighlightHazard}
+        />
       </main>
       {activeTab === "list" && showList && (
         <ListModal
