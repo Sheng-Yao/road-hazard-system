@@ -27,11 +27,10 @@ export default {
           .limit(200);
 
         if (error) throw error;
-
         return json(data);
       }
 
-      // 🔹 NEW: GET HAZARDS FOR MAP PLOTTING
+      // 🔹 GET HAZARDS FOR MAP PLOTTING
       if (path.startsWith("/hazard-map")) {
         const { data, error } = await supabase
           .from("road_hazard_final_db")
@@ -45,7 +44,7 @@ export default {
         return json(data);
       }
 
-      // 🔹 GET SINGLE HAZARD BY ID
+      // 🔹 GET SINGLE HAZARD
       if (path.startsWith("/hazard/")) {
         const id = path.split("/").pop();
 
@@ -53,31 +52,23 @@ export default {
           .from("road_hazard_final_db")
           .select("*")
           .eq("id", id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
-
         return json(data);
       }
 
-      /* =========================================================
-         🔥 NEW: WORKER FETCH
-      ========================================================= */
-
+      // 🔹 GET WORKERS
       if (path.startsWith("/workers")) {
         const { data, error } = await supabase
           .from("workers_db")
           .select("id, name");
 
         if (error) throw error;
-
         return json(data);
       }
 
-      /* =========================================================
-         🔥 NEW: GET REPAIR TRACKER FOR A SPECIFIC HAZARD
-      ========================================================= */
-
+      // 🔹 GET REPAIR TRACKER FOR HAZARD
       if (path.startsWith("/repair/") && request.method === "GET") {
         const id = path.split("/").pop();
 
@@ -86,39 +77,33 @@ export default {
           .select(
             "id, worker_id, team_assigned_at, in_progress_at, completed_at, photo_url"
           )
-          .eq("id", id)
-          .single();
+          .eq("hazard_id", id)
+          .maybeSingle();
 
         if (error) throw error;
-
-        return json(data);
+        return json(data || {}); // safe
       }
-
-      /* =========================================================
-         🔥 NEW: UPDATE REPAIR STATUS (FORWARD-ONLY)
-      ========================================================= */
 
       // 🔹 UPDATE REPAIR STATUS
       if (path.startsWith("/update-repair/") && request.method === "POST") {
         const id = path.split("/").pop();
         const body = await request.json();
-
         const { status, worker_id, photo_url } = body;
 
-        // ============================================================
-        // 1️⃣ Fetch existing row first (needed for forward-only checks)
-        // ============================================================
+        // 1️⃣ Get current row
         const { data: current, error: fetchErr } = await supabase
           .from("repair_tracker_db")
           .select("*")
-          .eq("id", id)
-          .single();
+          .eq("hazard_id", id)
+          .maybeSingle();
 
         if (fetchErr) throw fetchErr;
 
-        // ============================================================
-        // 2️⃣ Prevent backward or duplicate updates
-        // ============================================================
+        if (!current) {
+          return json({ error: "No repair entry found for this hazard" }, 404);
+        }
+
+        // 2️⃣ Prevent duplicate/backwards updates
         if (status === "assigned" && current.team_assigned_at)
           return json({ error: "Already assigned" }, 400);
 
@@ -128,9 +113,7 @@ export default {
         if (status === "completed" && current.completed_at)
           return json({ error: "Already completed" }, 400);
 
-        // ============================================================
-        // 3️⃣ Build update object (forward-only)
-        // ============================================================
+        // 3️⃣ Prepare update data
         const updateData = {};
 
         if (status === "assigned")
@@ -143,25 +126,29 @@ export default {
           updateData.completed_at = new Date().toISOString();
 
         if (worker_id) updateData.worker_id = worker_id;
-
         if (photo_url) updateData.photo_url = photo_url;
 
-        // ============================================================
         // 4️⃣ Execute update
-        // ============================================================
         const { data, error } = await supabase
           .from("repair_tracker_db")
           .update(updateData)
-          .eq("id", id)
+          .eq("hazard_id", id)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
+
+        // 5️⃣ Safety check — if update did nothing
+        if (!data) {
+          return json(
+            { error: "No update performed — tracker row missing" },
+            400
+          );
+        }
 
         return json({ success: true, data });
       }
 
-      /* ========================================================= */
       return new Response("Not Found", { status: 404, headers: corsHeaders });
     } catch (err) {
       return json({ error: err.message }, 500);
@@ -169,7 +156,7 @@ export default {
   },
 };
 
-// 🌍 Reusable Response helpers:.
+// 🌍 Helpers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
