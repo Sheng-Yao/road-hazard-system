@@ -120,9 +120,6 @@ export default {
         if (status === "assigned" && current.team_assigned_at)
           return json({ error: "Already assigned" }, 400);
 
-        if (status === "on_the_way" && current.on_the_way_at)
-          return json({ error: "Already on the way" }, 400);
-
         if (status === "in_progress" && current.in_progress_at)
           return json({ error: "Already in progress" }, 400);
 
@@ -136,9 +133,6 @@ export default {
 
         if (status === "assigned")
           updateData.team_assigned_at = new Date().toISOString();
-
-        if (status === "on_the_way")
-          updateData.on_the_way_at = new Date().toISOString();
 
         if (status === "in_progress")
           updateData.in_progress_at = new Date().toISOString();
