@@ -16,18 +16,48 @@ export default {
     try {
       const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_KEY);
 
-      // 🔹 GET LIST OF HAZARDS
+      /* ----------------------------------------------------------
+         1️⃣ GET LIST OF HAZARDS + REPAIR PROGRESS (MERGED)
+      ---------------------------------------------------------- */
       if (path.startsWith("/stats")) {
-        const { data, error } = await supabase
+        // Fetch hazards
+        const { data: hazards, error: hazardsErr } = await supabase
           .from("road_hazard_final_db")
           .select(
-            "id,reported_at,image_url,latitude,longitude,hazard_type,state,risk_level"
+            "id, reported_at, image_url, latitude, longitude, hazard_type, state, risk_level"
           )
           .order("risk_level", { ascending: false })
           .limit(200);
 
-        if (error) throw error;
-        return json(data);
+        if (hazardsErr) throw hazardsErr;
+        if (!hazards) return json([]);
+
+        // Get all ids
+        const ids = hazards.map((h) => h.id);
+
+        // Fetch all repair rows for these hazards
+        const { data: repairs, error: repairErr } = await supabase
+          .from("repair_tracker_db")
+          .select(
+            "id, worker_id, reported_at, team_assigned_at, in_progress_at, completed_at, photo_url"
+          )
+          .in("id", ids);
+
+        if (repairErr) throw repairErr;
+
+        // Build map
+        const repairMap = {};
+        (repairs || []).forEach((r) => {
+          repairMap[r.id] = r;
+        });
+
+        // Merge objects
+        const merged = hazards.map((h) => ({
+          ...h,
+          progress: repairMap[h.id] || null,
+        }));
+
+        return json(merged);
       }
 
       // 🔹 GET HAZARDS FOR MAP PLOTTING

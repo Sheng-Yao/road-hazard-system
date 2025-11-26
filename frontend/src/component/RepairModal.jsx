@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 
-export default function RepairModal({ hazard, onClose }) {
+export default function RepairModal({ hazard, onClose, onUpdated }) {
   const [workers, setWorkers] = useState([]);
   const [assignedTo, setAssignedTo] = useState("");
   const [status, setStatus] = useState("reported");
   const [progress, setProgress] = useState(null);
+  const [upload, setUpload] = useState(null);
 
   const API_BASE = "https://road-hazard-api.road-hazard-system.workers.dev";
 
@@ -112,6 +113,7 @@ export default function RepairModal({ hazard, onClose }) {
     alert("Repair progress updated!");
     setUpload(null);
     onClose();
+    if (onUpdated) onUpdated(hazard.id);
   }
 
   return (

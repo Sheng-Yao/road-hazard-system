@@ -6,6 +6,7 @@ export default function ListModal({
   initialHazardId,
   onShowRepairModal,
   forceDetails,
+  refreshId,
 }) {
   const [hazards, setHazards] = useState([]);
   const [selectedHazard, setSelectedHazard] = useState(null);
@@ -162,6 +163,21 @@ export default function ListModal({
     loadHazardDetails(id);
     if (isMobile) setMobilePage("details");
   };
+
+  useEffect(() => {
+    if (!refreshId) return;
+
+    // refetch only the updated hazard progress
+    fetch(`${API_BASE}/repair/${refreshId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProgressData((prev) => ({
+          ...prev,
+          [refreshId]: data || {},
+        }));
+      })
+      .catch(console.error);
+  }, [refreshId]);
 
   const HazardItem = React.memo(function HazardItem({
     item,

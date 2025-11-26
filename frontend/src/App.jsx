@@ -21,6 +21,8 @@ export default function App() {
   const [forceDetails, setForceDetails] = useState(false);
   const mapRef = useRef(null);
 
+  const [refreshId, setRefreshId] = useState(null);
+
   function showHazardDetailsFromMap(hazard) {
     mapRef.current?.highlight(hazard);
     setInitialHazardId(hazard.id);
@@ -178,6 +180,7 @@ export default function App() {
                 setShowList(false);
               }}
               onShowRepairModal={handleShowRepairModal}
+              refreshId={refreshId}
             />
           </div>
         </div>
@@ -186,6 +189,7 @@ export default function App() {
         <RepairModal
           hazard={repairHazard}
           onClose={() => setShowRepairModal(false)}
+          onUpdated={(id) => setRefreshId(id)}
         />
       )}
     </div>
