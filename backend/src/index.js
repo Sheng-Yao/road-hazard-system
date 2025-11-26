@@ -96,30 +96,68 @@ export default {
          🔥 NEW: UPDATE REPAIR STATUS (FORWARD-ONLY)
       ========================================================= */
 
-      if (path.startsWith("/repair/update/") && request.method === "POST") {
+      // 🔹 UPDATE REPAIR STATUS
+      if (path.startsWith("/update-repair/") && request.method === "POST") {
         const id = path.split("/").pop();
         const body = await request.json();
 
-        // Prevent overwriting existing timestamps
-        const { data: existing } = await supabase
+        const { status, worker, photo_url } = body;
+
+        // ============================================================
+        // 1️⃣ Fetch existing row first (needed for forward-only checks)
+        // ============================================================
+        const { data: current, error: fetchErr } = await supabase
           .from("repair_tracker_db")
           .select("*")
           .eq("id", id)
           .single();
 
-        const updatePayload = {
-          worker: body.worker ?? existing.worker,
-          reported_at: existing.reported_at || body.reported_at,
-          team_assigned_at: existing.team_assigned_at || body.team_assigned_at,
-          on_the_way_at: existing.on_the_way_at || body.on_the_way_at,
-          in_progress_at: existing.in_progress_at || body.in_progress_at,
-          completed_at: existing.completed_at || body.completed_at,
-        };
+        if (fetchErr) throw fetchErr;
+
+        // ============================================================
+        // 2️⃣ Prevent backward or duplicate updates
+        // ============================================================
+        if (status === "assigned" && current.team_assigned_at)
+          return json({ error: "Already assigned" }, 400);
+
+        if (status === "on_the_way" && current.on_the_way_at)
+          return json({ error: "Already on the way" }, 400);
+
+        if (status === "in_progress" && current.in_progress_at)
+          return json({ error: "Already in progress" }, 400);
+
+        if (status === "completed" && current.completed_at)
+          return json({ error: "Already completed" }, 400);
+
+        // ============================================================
+        // 3️⃣ Build update object (forward-only)
+        // ============================================================
+        const updateData = {};
+
+        if (status === "assigned")
+          updateData.team_assigned_at = new Date().toISOString();
+
+        if (status === "on_the_way")
+          updateData.on_the_way_at = new Date().toISOString();
+
+        if (status === "in_progress")
+          updateData.in_progress_at = new Date().toISOString();
+
+        if (status === "completed")
+          updateData.completed_at = new Date().toISOString();
+
+        if (worker) updateData.worker = worker;
+        if (photo_url) updateData.photo_url = photo_url;
+
+        // ============================================================
+        // 4️⃣ Execute update
+        // ============================================================
         const { data, error } = await supabase
           .from("repair_tracker_db")
-          .update(updatePayload)
+          .update(updateData)
           .eq("id", id)
-          .select();
+          .select()
+          .single();
 
         if (error) throw error;
 
