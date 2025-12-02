@@ -24,57 +24,31 @@ function MapHighlighter({ highlightHazard, markerRefs }) {
     if (!highlightHazard) return;
 
     const latlng = [highlightHazard.latitude, highlightHazard.longitude];
-    // Detect if zoom will change
-    const willZoom = map.getZoom() !== 16;
-    // Step 1: Move to location
+
+    // 1. Move the map to the marker position (zoom 16)
     map.setView(latlng, 16, { animate: true });
-    // Realign popup after zoom/move + after popup finishes rendering
-    const realign = () => {
+
+    // 2. Once the map finishes moving, open & align popup
+    map.once("moveend", () => {
       const marker = markerRefs.current?.[highlightHazard.id];
       if (!marker) return;
 
-      // Open popup
+      const popup = marker.getPopup();
+      if (!popup) return;
+
+      // Disable Leaflet auto-pan fully (clustered markers ignore the JSX prop)
+      popup.options.autoPan = false;
+
       marker.openPopup();
 
-      // Allow popup DOM to be created
+      // Allow DOM to render popup content
       setTimeout(() => {
-        const popup = marker.getPopup();
-        if (!popup) return;
+        popup.update();
 
-        popup.update(); // force recalculation
-
-        const popupEl = popup.getElement();
-        if (!popupEl) return;
-
-        const popupHeight = popupEl.offsetHeight;
-
-        // Pan map upward according to TRUE popup height
-        const offset = popupHeight / 2 + 40;
-
-        map.panBy([0, -offset], { animate: true });
+        // Pan DOWN by 320px (popup goes UP)
+        map.panBy([0, -320], { animate: true });
       }, 50);
-    };
-
-    const handleZoomEnd = () => {
-      realign();
-      map.off("zoomend", handleZoomEnd);
-      map.off("moveend", handleMoveEnd);
-    };
-
-    const handleMoveEnd = () => {
-      realign();
-      map.off("moveend", handleMoveEnd);
-      map.off("zoomend", handleZoomEnd);
-    };
-
-    // If zoom changes → wait for zoomend
-    if (willZoom) map.on("zoomend", handleZoomEnd);
-    else map.on("moveend", handleMoveEnd);
-
-    return () => {
-      map.off("zoomend", handleZoomEnd);
-      map.off("moveend", handleMoveEnd);
-    };
+    });
   }, [highlightHazard]);
 
   return null;
@@ -255,7 +229,7 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
                       popup?.update();
 
                       // Trigger map movement by firing the same event
-                      marker._map?.fire("moveend");
+                      // marker._map?.fire("moveend");
                     }}
                   />
                 )}
